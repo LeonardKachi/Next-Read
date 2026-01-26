@@ -668,7 +668,135 @@ document.addEventListener('DOMContentLoaded', function() {
         state.searchQuery = '';
         loadBooks();
     };
+    // PAGINATION FUNCTIONS - ADD THESE
 
+    function updatePagination() {
+        if (!elements.paginationContainer) return;
+        
+        const totalPages = Math.ceil(state.totalBooks / config.booksPerPage);
+        state.totalPages = totalPages;
+        
+        if (totalPages <= 1) {
+            elements.paginationContainer.innerHTML = '';
+            return;
+        }
+        
+        const paginationHTML = createPaginationHTML(totalPages);
+        elements.paginationContainer.innerHTML = paginationHTML;
+        
+        // Attach event listeners to new pagination buttons
+        attachPaginationListeners();
+    }
+
+    function createPaginationHTML(totalPages) {
+        let paginationHTML = `
+            <nav class="pagination" role="navigation" aria-label="Pagination">
+                <button class="pagination-btn ${state.currentPage === 1 ? 'disabled' : ''}"
+                        ${state.currentPage === 1 ? 'disabled' : ''}
+                        data-page="${state.currentPage - 1}"
+                        aria-label="Previous page">
+                    <i class="fas fa-chevron-left"></i>
+                    <span>Previous</span>
+                </button>
+                
+                <div class="page-numbers">`;
+        
+        // Calculate page range to show (maximum 5 pages)
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, state.currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+        
+        // Adjust start page if we're at the end
+        if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+        
+        // Always show first page
+        if (startPage > 1) {
+            paginationHTML += `
+                <button class="pagination-btn ${state.currentPage === 1 ? 'active' : ''}"
+                        data-page="1"
+                        aria-label="Page 1">
+                    1
+                </button>`;
+            
+            if (startPage > 2) {
+                paginationHTML += `<span class="pagination-dots" aria-hidden="true">...</span>`;
+            }
+        }
+        
+        // Show page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            paginationHTML += `
+                <button class="pagination-btn ${state.currentPage === i ? 'active' : ''}"
+                        data-page="${i}"
+                        aria-label="Page ${i}"
+                        aria-current="${state.currentPage === i ? 'page' : 'false'}">
+                    ${i}
+                </button>`;
+        }
+        
+        // Always show last page
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                paginationHTML += `<span class="pagination-dots" aria-hidden="true">...</span>`;
+            }
+            
+            paginationHTML += `
+                <button class="pagination-btn ${state.currentPage === totalPages ? 'active' : ''}"
+                        data-page="${totalPages}"
+                        aria-label="Page ${totalPages}">
+                    ${totalPages}
+                </button>`;
+        }
+        
+        paginationHTML += `
+                </div>
+                
+                <button class="pagination-btn ${state.currentPage === totalPages ? 'disabled' : ''}"
+                        ${state.currentPage === totalPages ? 'disabled' : ''}
+                        data-page="${state.currentPage + 1}"
+                        aria-label="Next page">
+                    <span>Next</span>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </nav>`;
+        
+        return paginationHTML;
+    }
+
+    function attachPaginationListeners() {
+        const paginationBtns = elements.paginationContainer.querySelectorAll('.pagination-btn:not(.disabled)');
+        
+        paginationBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const page = parseInt(btn.dataset.page);
+                if (!isNaN(page)) {
+                    changePage(page);
+                }
+            });
+        });
+    }
+
+    function changePage(page) {
+        if (page < 1 || page > state.totalPages) {
+            return;
+        }
+        
+        state.currentPage = page;
+        loadBooks();
+        
+        // Smooth scroll to top
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+        
+        showToast(`Page ${page}`, 'info');
+    }
+
+    // Make changePage available globally
+    window.changePage = changePage;
     // Handle browser back/forward
     window.addEventListener('popstate', function() {
         const params = new URLSearchParams(window.location.search);
@@ -728,5 +856,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
 
 
