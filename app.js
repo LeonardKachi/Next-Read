@@ -18,8 +18,10 @@ document.addEventListener('DOMContentLoaded', function() {
         searchQuery: '',
         currentPage: 1,
         totalBooks: 0,
+        totalPages: 1,
         isLoading: false,
-        searchTimeout: null
+        searchTimeout: null,
+        wishlist: JSON.parse(localStorage.getItem('wishlist') || '[]')
     };
 
     // DOM Elements
@@ -68,19 +70,36 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event Listeners
     function setupEventListeners() {
         // Theme toggle
-        elements.themeToggle?.addEventListener('click', toggleTheme);
+        if (elements.themeToggle) {
+            elements.themeToggle.addEventListener('click', toggleTheme);
+        }
 
         // Search with debouncing
-        elements.searchInput?.addEventListener('input', debounceSearch);
-        elements.searchBtn?.addEventListener('click', executeSearch);
-        elements.searchInput?.addEventListener('keyup', (e) => e.key === 'Enter' && executeSearch());
+        if (elements.searchInput) {
+            elements.searchInput.addEventListener('input', debounceSearch);
+        }
+        
+        if (elements.searchBtn) {
+            elements.searchBtn.addEventListener('click', executeSearch);
+        }
+        
+        if (elements.searchInput) {
+            elements.searchInput.addEventListener('keyup', (e) => e.key === 'Enter' && executeSearch());
+        }
 
         // Filters
-        elements.sortSelect?.addEventListener('change', handleSortChange);
-        elements.pageCountFilter?.addEventListener('change', handlePageFilterChange);
+        if (elements.sortSelect) {
+            elements.sortSelect.addEventListener('change', handleSortChange);
+        }
+        
+        if (elements.pageCountFilter) {
+            elements.pageCountFilter.addEventListener('change', handlePageFilterChange);
+        }
 
         // Genre buttons
-        elements.genreButtons?.addEventListener('click', handleGenreClick);
+        if (elements.genreButtons) {
+            elements.genreButtons.addEventListener('click', handleGenreClick);
+        }
     }
 
     // Search Functions
@@ -90,19 +109,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function executeSearch() {
-        state.searchQuery = elements.searchInput?.value.trim() || '';
+        state.searchQuery = elements.searchInput ? elements.searchInput.value.trim() : '';
         state.currentPage = 1;
         loadBooks();
     }
 
     // Filter Handlers
     function handleSortChange() {
-        state.currentSort = elements.sortSelect?.value || 'relevance';
+        state.currentSort = elements.sortSelect ? elements.sortSelect.value : 'relevance';
         applyFilters();
     }
 
     function handlePageFilterChange() {
-        state.currentPageFilter = elements.pageCountFilter?.value || 'any';
+        state.currentPageFilter = elements.pageCountFilter ? elements.pageCountFilter.value : 'any';
         applyFilters();
     }
 
@@ -136,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const params = new URLSearchParams();
             if (state.searchQuery) params.append('query', state.searchQuery);
             if (state.currentGenre !== 'all') params.append('genre', state.currentGenre);
-            params.append('page', state.currentPage);
+            params.append('page', state.currentPage - 1); // API expects 0-based index
             params.append('perPage', config.booksPerPage);
 
             const response = await fetch(`${config.apiEndpoint}?${params.toString()}`, {
@@ -153,13 +172,16 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (!data.books || data.books.length === 0) {
                 showEmptyState('No books found. Try adjusting your search or filters.');
+                elements.paginationContainer.innerHTML = '';
                 return;
             }
 
             state.allBooks = processBooks(data.books);
             state.totalBooks = data.totalItems || data.books.length;
+            state.totalPages = Math.ceil(state.totalBooks / config.booksPerPage);
             
             applyFilters();
+            updatePagination();
             showToast(`Found ${state.totalBooks} books`, 'success');
             
         } catch (error) {
@@ -204,7 +226,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 isbn: book.isbn || {},
                 popularityScore: parseFloat(book.popularityScore) || 0,
                 readingAge: book.readingAge || 'general',
-                keywords: book.keywords || []
+                keywords: book.keywords || [],
+                isWishlisted: state.wishlist.includes(book.id || '')
             };
         });
     }
@@ -312,11 +335,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const booksHTML = booksToDisplay.map(book => createBookCard(book)).join('');
         
-        elements.bookGrid.innerHTML = booksHTML;
+        if (elements.bookGrid) {
+            elements.bookGrid.innerHTML = booksHTML;
+        }
     }
 
     function createBookCard(book) {
         const primaryGenre = book.categories?.[0] || book.genre || 'General';
+        const isWishlisted = state.wishlist.includes(book.id);
         
         return `
             <div class="book-card" role="article" aria-label="${book.title} by ${book.author}">
@@ -362,10 +388,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <i class="fas fa-shopping-cart"></i>
                                 <span>Buy Now</span>
                             </a>
-                            <button class="btn-wishlist" 
-                                    onclick="addToWishlist('${book.id}')"
-                                    aria-label="Add ${book.title} to wishlist">
-                                <i class="far fa-heart"></i>
+                            <button class="btn-wishlist ${isWishlisted ? 'wishlisted' : ''}" 
+                                    onclick="toggleWishlist('${book.id}', this)"
+                                    aria-label="${isWishlisted ? 'Remove from' : 'Add to'} wishlist">
+                                <i class="${isWishlisted ? 'fas' : 'far'} fa-heart"></i>
                             </button>
                         </div>
                     </div>
@@ -403,9 +429,12 @@ document.addEventListener('DOMContentLoaded', function() {
         return `${stars} <span class="rating-text">${rating.toFixed(1)}</span>`;
     }
 
-    // Pagination
+    // Pagination Functions
     function updatePagination() {
+        if (!elements.paginationContainer) return;
+        
         const totalPages = Math.ceil(state.filteredBooks.length / config.booksPerPage);
+        state.totalPages = totalPages;
         
         if (totalPages <= 1) {
             elements.paginationContainer.innerHTML = '';
@@ -496,6 +525,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function attachPaginationListeners() {
+        if (!elements.paginationContainer) return;
+        
         const paginationBtns = elements.paginationContainer.querySelectorAll('.pagination-btn:not(.disabled)');
         
         paginationBtns.forEach(btn => {
@@ -509,12 +540,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function changePage(page) {
-        if (page < 1 || page > Math.ceil(state.filteredBooks.length / config.booksPerPage)) {
+        if (page < 1 || page > state.totalPages) {
             return;
         }
         
         state.currentPage = page;
-        displayBooks();
+        loadBooks();
         
         // Smooth scroll to top
         window.scrollTo({
@@ -522,24 +553,13 @@ document.addEventListener('DOMContentLoaded', function() {
             behavior: 'smooth'
         });
         
-        // Update URL without page reload
-        updateURL();
-    }
-
-    function updateURL() {
-        const params = new URLSearchParams();
-        if (state.searchQuery) params.set('q', state.searchQuery);
-        if (state.currentGenre !== 'all') params.set('genre', state.currentGenre);
-        if (state.currentSort !== 'relevance') params.set('sort', state.currentSort);
-        if (state.currentPageFilter !== 'any') params.set('pages', state.currentPageFilter);
-        if (state.currentPage > 1) params.set('page', state.currentPage);
-        
-        const newUrl = `${window.location.pathname}?${params.toString()}`;
-        window.history.pushState({}, '', newUrl);
+        showToast(`Page ${page}`, 'info');
     }
 
     // UI States
     function showLoadingState() {
+        if (!elements.bookGrid) return;
+        
         elements.bookGrid.innerHTML = `
             <div class="loading-container" aria-live="polite" aria-busy="true">
                 <div class="loading">
@@ -548,10 +568,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
         `;
-        elements.paginationContainer.innerHTML = '';
+        
+        if (elements.paginationContainer) {
+            elements.paginationContainer.innerHTML = '';
+        }
     }
 
     function showEmptyState(message) {
+        if (!elements.bookGrid) return;
+        
         elements.bookGrid.innerHTML = `
             <div class="empty-state" aria-live="polite">
                 <div class="empty-icon">
@@ -565,10 +590,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 </button>
             </div>
         `;
-        elements.paginationContainer.innerHTML = '';
+        
+        if (elements.paginationContainer) {
+            elements.paginationContainer.innerHTML = '';
+        }
     }
 
     function showErrorState(message) {
+        if (!elements.bookGrid) return;
+        
         elements.bookGrid.innerHTML = `
             <div class="error-state" aria-live="assertive">
                 <div class="error-icon">
@@ -582,11 +612,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 </button>
             </div>
         `;
-        elements.paginationContainer.innerHTML = '';
+        
+        if (elements.paginationContainer) {
+            elements.paginationContainer.innerHTML = '';
+        }
     }
 
     // Toast System
     function showToast(message, type = 'info') {
+        if (!elements.toastContainer) {
+            elements.toastContainer = document.createElement('div');
+            elements.toastContainer.id = 'toastContainer';
+            elements.toastContainer.className = 'toast-container';
+            document.body.appendChild(elements.toastContainer);
+        }
+        
         const toastId = `toast-${Date.now()}`;
         const toastElement = document.createElement('div');
         
@@ -619,184 +659,77 @@ document.addEventListener('DOMContentLoaded', function() {
         return icons[type] || 'info-circle';
     }
 
+    // Wishlist Functions
+    function toggleWishlist(bookId, buttonElement) {
+        const book = state.allBooks.find(b => b.id === bookId);
+        if (!book) return;
+        
+        const index = state.wishlist.indexOf(bookId);
+        
+        if (index === -1) {
+            // Add to wishlist
+            state.wishlist.push(bookId);
+            showToast(`"${book.title}" added to wishlist`, 'success');
+            
+            if (buttonElement) {
+                buttonElement.classList.add('wishlisted');
+                buttonElement.querySelector('i').className = 'fas fa-heart';
+                buttonElement.setAttribute('aria-label', 'Remove from wishlist');
+            }
+        } else {
+            // Remove from wishlist
+            state.wishlist.splice(index, 1);
+            showToast(`"${book.title}" removed from wishlist`, 'info');
+            
+            if (buttonElement) {
+                buttonElement.classList.remove('wishlisted');
+                buttonElement.querySelector('i').className = 'far fa-heart';
+                buttonElement.setAttribute('aria-label', 'Add to wishlist');
+            }
+        }
+        
+        // Update book state
+        const bookIndex = state.allBooks.findIndex(b => b.id === bookId);
+        if (bookIndex !== -1) {
+            state.allBooks[bookIndex].isWishlisted = index === -1;
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('wishlist', JSON.stringify(state.wishlist));
+    }
+
     // Global functions
     window.removeToast = function(toastId) {
         const toast = document.getElementById(toastId);
-        if (toast) {
+        if (toast && toast.parentElement) {
             toast.style.opacity = '0';
             setTimeout(() => toast.remove(), 300);
         }
     };
 
-    window.addToWishlist = function(bookId) {
-        const book = state.allBooks.find(b => b.id === bookId);
-        if (book) {
-            // In a real app, save to localStorage or send to backend
-            const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-            if (!wishlist.includes(bookId)) {
-                wishlist.push(bookId);
-                localStorage.setItem('wishlist', JSON.stringify(wishlist));
-                showToast(`Added "${book.title}" to your wishlist`, 'success');
-            } else {
-                showToast('Book already in wishlist', 'info');
-            }
-        }
-    };
+    window.toggleWishlist = toggleWishlist;
 
     window.resetFilters = function() {
         state.currentGenre = 'all';
         state.currentSort = 'relevance';
         state.currentPageFilter = 'any';
         state.currentPage = 1;
+        state.searchQuery = '';
         
         // Reset UI
-        document.querySelectorAll('.genre-btn').forEach(btn => {
-            btn.classList.remove('active');
-            btn.setAttribute('aria-pressed', 'false');
-        });
-        
-        const allGenresBtn = document.querySelector('.genre-btn[data-genre="all"]');
-        if (allGenresBtn) {
-            allGenresBtn.classList.add('active');
-            allGenresBtn.setAttribute('aria-pressed', 'true');
-        }
-        
+        if (elements.searchInput) elements.searchInput.value = '';
         if (elements.sortSelect) elements.sortSelect.value = 'relevance';
         if (elements.pageCountFilter) elements.pageCountFilter.value = 'any';
-        if (elements.searchInput) elements.searchInput.value = '';
         
-        state.searchQuery = '';
+        document.querySelectorAll('.genre-btn').forEach(btn => {
+            const isAll = btn.dataset.genre === 'all';
+            btn.classList.toggle('active', isAll);
+            btn.setAttribute('aria-pressed', isAll.toString());
+        });
+        
         loadBooks();
     };
-    // PAGINATION FUNCTIONS - ADD THESE
 
-    function updatePagination() {
-        if (!elements.paginationContainer) return;
-        
-        const totalPages = Math.ceil(state.totalBooks / config.booksPerPage);
-        state.totalPages = totalPages;
-        
-        if (totalPages <= 1) {
-            elements.paginationContainer.innerHTML = '';
-            return;
-        }
-        
-        const paginationHTML = createPaginationHTML(totalPages);
-        elements.paginationContainer.innerHTML = paginationHTML;
-        
-        // Attach event listeners to new pagination buttons
-        attachPaginationListeners();
-    }
-
-    function createPaginationHTML(totalPages) {
-        let paginationHTML = `
-            <nav class="pagination" role="navigation" aria-label="Pagination">
-                <button class="pagination-btn ${state.currentPage === 1 ? 'disabled' : ''}"
-                        ${state.currentPage === 1 ? 'disabled' : ''}
-                        data-page="${state.currentPage - 1}"
-                        aria-label="Previous page">
-                    <i class="fas fa-chevron-left"></i>
-                    <span>Previous</span>
-                </button>
-                
-                <div class="page-numbers">`;
-        
-        // Calculate page range to show (maximum 5 pages)
-        const maxVisiblePages = 5;
-        let startPage = Math.max(1, state.currentPage - Math.floor(maxVisiblePages / 2));
-        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-        
-        // Adjust start page if we're at the end
-        if (endPage - startPage + 1 < maxVisiblePages) {
-            startPage = Math.max(1, endPage - maxVisiblePages + 1);
-        }
-        
-        // Always show first page
-        if (startPage > 1) {
-            paginationHTML += `
-                <button class="pagination-btn ${state.currentPage === 1 ? 'active' : ''}"
-                        data-page="1"
-                        aria-label="Page 1">
-                    1
-                </button>`;
-            
-            if (startPage > 2) {
-                paginationHTML += `<span class="pagination-dots" aria-hidden="true">...</span>`;
-            }
-        }
-        
-        // Show page numbers
-        for (let i = startPage; i <= endPage; i++) {
-            paginationHTML += `
-                <button class="pagination-btn ${state.currentPage === i ? 'active' : ''}"
-                        data-page="${i}"
-                        aria-label="Page ${i}"
-                        aria-current="${state.currentPage === i ? 'page' : 'false'}">
-                    ${i}
-                </button>`;
-        }
-        
-        // Always show last page
-        if (endPage < totalPages) {
-            if (endPage < totalPages - 1) {
-                paginationHTML += `<span class="pagination-dots" aria-hidden="true">...</span>`;
-            }
-            
-            paginationHTML += `
-                <button class="pagination-btn ${state.currentPage === totalPages ? 'active' : ''}"
-                        data-page="${totalPages}"
-                        aria-label="Page ${totalPages}">
-                    ${totalPages}
-                </button>`;
-        }
-        
-        paginationHTML += `
-                </div>
-                
-                <button class="pagination-btn ${state.currentPage === totalPages ? 'disabled' : ''}"
-                        ${state.currentPage === totalPages ? 'disabled' : ''}
-                        data-page="${state.currentPage + 1}"
-                        aria-label="Next page">
-                    <span>Next</span>
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            </nav>`;
-        
-        return paginationHTML;
-    }
-
-    function attachPaginationListeners() {
-        const paginationBtns = elements.paginationContainer.querySelectorAll('.pagination-btn:not(.disabled)');
-        
-        paginationBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const page = parseInt(btn.dataset.page);
-                if (!isNaN(page)) {
-                    changePage(page);
-                }
-            });
-        });
-    }
-
-    function changePage(page) {
-        if (page < 1 || page > state.totalPages) {
-            return;
-        }
-        
-        state.currentPage = page;
-        loadBooks();
-        
-        // Smooth scroll to top
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
-        
-        showToast(`Page ${page}`, 'info');
-    }
-
-    // Make changePage available globally
-    window.changePage = changePage;
     // Handle browser back/forward
     window.addEventListener('popstate', function() {
         const params = new URLSearchParams(window.location.search);
@@ -856,6 +789,3 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-
-
-
