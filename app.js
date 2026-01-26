@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Configuration
     const config = {
-        apiEndpoint: 'https://s5uvefaoe8.execute-api.us-east-1.amazonaws.com/prod/recommendations?genre=fiction',
+        apiEndpoint: 'https://s5uvefaoe8.execute-api.us-east-1.amazonaws.com/prod/recommendations',
         booksPerPage: 12,
         maxVisiblePages: 5,
         debounceDelay: 300
@@ -728,4 +728,5 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
 
