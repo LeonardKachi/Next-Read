@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
-    const API_ENDPOINT = 'https://aw5v983hz3.execute-api.us-east-1.amazonaws.com/prod/recommendations';
+    const API_ENDPOINT = 'https://s5uvefaoe8.execute-api.us-east-1.amazonaws.com/prod';
     const bookGrid = document.getElementById('bookGrid');
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
@@ -340,3 +340,4 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
 });
+
