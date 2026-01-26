@@ -2,11 +2,11 @@
 
 An interactive book discovery platform powered by **Google Books API**, built using **HTML, CSS, and JavaScript**, and deployable via **GitHub Pages** or **fully automated Terraform-based AWS Infrastructure**. Users can explore, search, and filter book recommendations with a smooth UI and serverless backend.
 
-## 🔧 Architecture Overview
+## Architecture Overview
 
 ![Architecture Diagram](Book-recommendation-app.drawio.png)
 
-### 🔹 Tech Stack
+### Tech Stack
 
 - **Frontend:** HTML, CSS, JavaScript (S3 or GitHub Pages)
 - **Backend:** AWS Lambda (Python), API Gateway (REST API)
@@ -18,9 +18,9 @@ An interactive book discovery platform powered by **Google Books API**, built us
 
 ---
 
-## 🚀 Deployment Instructions
+## Deployment Instructions
 
-### 📁 1. Project Structure
+### Project Structure
 
 ```
 .
@@ -38,15 +38,15 @@ An interactive book discovery platform powered by **Google Books API**, built us
 
 ---
 
-### ✅ 2. Deployment Options
+###  Deployment Options
 
-#### 📲 A. GitHub Pages (Frontend Only)
+#### A. GitHub Pages (Frontend Only)
 1. Push to a GitHub repository.
 2. Go to Settings > Pages, set source to `main` and root folder.
 3. App will be live at `https://<username>.github.io/<repo>/`
 4. Ensure `API_ENDPOINT` in `app.js` points to your live API URL.
 
-#### ⚙️ B. Full Stack Deployment with Terraform (Recommended)
+#### B. Full Stack Deployment with Terraform (Recommended)
 1. Install [Terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli) and [AWS CLI](https://aws.amazon.com/cli/).
 2. Configure AWS CLI with `aws configure`
 3. Create:
@@ -63,15 +63,15 @@ An interactive book discovery platform powered by **Google Books API**, built us
 
 ---
 
-## 🌐 Live Demo
+## Live Demo
 [Next Read](https://leonardkachi.github.io/Next-Read/)  
 Deploy via:
-- 🔗 GitHub Pages (for frontend-only showcase)
-- ☁️ AWS Infrastructure via Terraform for complete functionality
+- GitHub Pages (for frontend-only showcase)
+- AWS Infrastructure via Terraform for complete functionality
 
 ---
 
-## 🛆 API Reference
+## API Reference
 
 ### `GET /recommendations`
 
@@ -107,14 +107,14 @@ Returns a list of book recommendations from Google Books API.
 
 ---
 
-## 👨‍💻 Author
+## Author
 
 **Obidiegwu Onyedikachi Henry Leonard**  
 Cloud Security Architect | DevSecOps Engineer  
-🔗 [GitHub](https://github.com/LeonardKachi) • [Portfolio](https://leonardkachi.github.io/Portfolio-website) • 📧 Henryleo480@gmail.com
+[GitHub](https://github.com/LeonardKachi) • [Portfolio](https://leonardkachi.github.io/Portfolio-website) • 📧 Henryleo480@gmail.com
 
 ---
 
-## 📜 License
+## License
 
 MIT — fork it, learn from it, build on it ✨
