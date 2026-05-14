@@ -109,9 +109,8 @@ Returns a list of book recommendations from Google Books API.
 
 ## Author
 
-**Obidiegwu Onyedikachi Henry Leonard**  
-Cloud Security Architect | DevSecOps Engineer  
-[GitHub](https://github.com/LeonardKachi) • [Portfolio](https://leonardkachi.github.io/Portfolio-website) • Henryleo480@gmail.com
+**[Obidiegwu Onyedikachi](https://leonardkachi.github.io/Portfolio-website)**  
+Cloud Security Engineer | DevSecOps Engineer  
 
 ---
 
